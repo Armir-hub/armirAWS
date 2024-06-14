@@ -39,3 +39,10 @@ mv /var/www/html/wordpress/* /var/www/html/
 # Remove the now-empty wordpress directory and the zip file
 rm -rf /var/www/html/wordpress
 rm latest.zip
+
+# Set proper permissions
+chown -R www-data:www-data /var/www/html
+chmod -R 755 /var/www/html
+
+# Remove the default Apache index.html file
+rm /var/www/html/index.html
