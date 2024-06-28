@@ -7,7 +7,6 @@ apt-get upgrade -y
 apt-get install -y apache2 \
                     ghostscript \
                     libapache2-mod-php \
-                    mysql-server \
                     php \
                     php-bcmath \
                     php-curl \
@@ -19,13 +18,12 @@ apt-get install -y apache2 \
                     php-xml \
                     php-zip \
                     unzip \
-                    curl
+                    curl \
+                    mysql-client
 
-# Optionally, start Apache and MySQL services
+# Optionally, start Apache service
 systemctl start apache2
 systemctl enable apache2
-systemctl start mysql
-systemctl enable mysql
 
 # Download WordPress
 curl -O https://wordpress.org/latest.zip
