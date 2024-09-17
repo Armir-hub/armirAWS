@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # Update package lists
 apt-get update
 apt-get upgrade -y
@@ -28,7 +27,6 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 
 sudo ./aws/install
-
 
 # Optionally, start Apache service
 systemctl start apache2
