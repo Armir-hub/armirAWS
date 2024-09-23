@@ -41,6 +41,8 @@ rm -rf cd/var/wwww/html
 
 aws s3 sync s3://armirbucket/my_arch.zip /var/www/wordpress.zip   
 unzip /var/www/wordpress.zip  
+aws s3 sync s3://armirbucket/aws.zip /var/www/aws.zip   
+unzip /var/www/aws.zip  
 
 # Update DB_CHARSET in wp-config.php
 sed -i "s/define('DB_CHARSET', 'utf8mb4');/define('DB_CHARSET', 'utf8');/" /var/www/html/wp-config.php
