@@ -41,7 +41,9 @@ sed -i "s/define('DB_CHARSET', 'utf8mb4');/define('DB_CHARSET', 'utf8');/" /var/
 # Add WP_HOME and WP_SITEURL to wp-config.php
 echo "define('WP_HOME', '$SITE_URL');" >> /var/www/html/wp-config.php
 
-
+# Set proper permissions
+chown -R www-data:www-data /var/www/html
+chmod -R 755 /var/www/html
 
 
 # Set the proper permissions for wp-config.php
