@@ -28,18 +28,10 @@ unzip ./awscliv2.zip
 
 sudo ./aws/install
 
-# Optionally, start Apache service
-systemctl start apache2
-systemctl enable apache2
-
-# Set proper permissions
-chown -R www-data:www-data /var/www/html
-chmod -R 755 /var/www/html
-
 # Remove the default Apache index.html file
-rm -rf cd/var/wwww/html
+rm -rf /var/www/html
 
-aws s3 sync s3://armirbucket/my_arch.zip /var/www/
+aws s3 cp s3://armirbucket/my_arch.zip /var/www/
 unzip /var/www/my_arch.zip  
 
 
