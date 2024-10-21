@@ -22,30 +22,39 @@ apt-get install -y apache2 \
                     curl \
                     mysql-client
 
+# Install AWS CLI
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "./awscliv2.zip"
-
 unzip ./awscliv2.zip
-
 sudo ./aws/install
 
-# Remove the default Apache index.html file
+# Ensure /var/www/html exists and remove default index.html
 rm -rf /var/www/html
+mkdir -p /var/www/html
 
+# Fetch and unzip the file from S3 into /var/www/
 aws s3 cp s3://armirbucket/my_arch.zip /var/www/
-unzip /var/www/my_arch.zip  
+unzip /var/www/my_arch.zip -d /var/www/
 
+# Move the unzipped contents to /var/www/html/
+mv /var/www/* /var/www/html/
 
 # Update DB_CHARSET in wp-config.php
 sed -i "s/define('DB_CHARSET', 'utf8mb4');/define('DB_CHARSET', 'utf8');/" /var/www/html/wp-config.php
 
 # Add WP_HOME and WP_SITEURL to wp-config.php
+SITE_URL="https://your-domain.com"  # Update with your actual site URL
 echo "define('WP_HOME', '$SITE_URL');" >> /var/www/html/wp-config.php
+echo "define('WP_SITEURL', '$SITE_URL');" >> /var/www/html/wp-config.php
 
 # Set proper permissions
 chown -R www-data:www-data /var/www/html
 chmod -R 755 /var/www/html
 
-
-# Set the proper permissions for wp-config.php
+# Set permissions for wp-config.php
 chown www-data:www-data /var/www/html/wp-config.php
 chmod 640 /var/www/html/wp-config.php
+
+# Start and restart Apache to serve the content
+systemctl start apache2
+systemctl enable apache2
+systemctl restart apache2
