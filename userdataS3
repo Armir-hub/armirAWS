@@ -29,22 +29,16 @@ sudo ./aws/install
 
 # Ensure /var/www/html exists and remove default index.html
 rm -rf /var/www/html
-mkdir -p /var/www/html
+
 
 # Fetch and unzip the file from S3 into /var/www/
 aws s3 cp s3://armirbucket/my_arch.zip /var/www/
 unzip /var/www/my_arch.zip -d /var/www/
 
-# Move the unzipped contents to /var/www/html/
-mv /var/www/* /var/www/html/
 
 # Update DB_CHARSET in wp-config.php
 sed -i "s/define('DB_CHARSET', 'utf8mb4');/define('DB_CHARSET', 'utf8');/" /var/www/html/wp-config.php
 
-# Add WP_HOME and WP_SITEURL to wp-config.php
-SITE_URL="https://your-domain.com"  # Update with your actual site URL
-echo "define('WP_HOME', '$SITE_URL');" >> /var/www/html/wp-config.php
-echo "define('WP_SITEURL', '$SITE_URL');" >> /var/www/html/wp-config.php
 
 # Set proper permissions
 chown -R www-data:www-data /var/www/html
