@@ -1,0 +1,138 @@
+# PROVIDERS#
+
+
+provider "aws" {
+  access_key = local.aws_access_key
+  secret_key = local.aws_secret_key
+  region     = var.aws_region
+}
+
+
+# DATA#
+
+data "aws_availability_zones" "online" {
+  state = "available"
+}
+
+data "aws_ssm_parameter" "amzn2_linux " {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+
+# RESOURCES#
+
+# NETWORKING #
+resource "aws_vpc" "app" {
+  cidr_block           = var.vpc_cidr_block
+  enable_dns_hostnames = true
+
+}
+
+resource "aws_internet_gateway" "app" {
+  vpc_id = aws_vpc.app.id
+
+}
+
+resource "aws_subnet" "public_subnet1" {
+  count = length(data.aws_availability_zones.online.names)
+  cidr_block              = cidrsubnet(aws_vpc.app.cidr_block, 8, count.index)
+  vpc_id                  = aws_vpc.app.id
+  availability_zone = data.aws_availability_zones.online.names[count.index]
+  map_public_ip_on_launch = true
+}
+
+# ROUTING #yes
+resource "aws_route_table" "app" {
+  vpc_id = aws_vpc.app.id
+
+  route {
+    cidr_block = var.cidr_all
+    gateway_id = aws_internet_gateway.app.id
+  }
+}
+
+resource "aws_route_table_association" "app_subnet1" {
+  count = length(aws_subnet.public_subnet1)
+  subnet_id      = aws_subnet.public_subnet1[count.index].id
+  route_table_id = aws_route_table.app.id
+}
+
+# SECURITY GROUPS #
+# Nginx security group 
+resource "aws_security_group" "nginx_sg" {
+  name   = "nginx_sg"
+  vpc_id = aws_vpc.app.id
+
+  # HTTP #
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.cidr_all]
+  }
+
+  # outbound internet access
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.cidr_all]
+  }
+}
+
+# INSTANCES #
+resource "aws_instance" "nginx1" {
+  count                  = length(data.aws_availability_zones.online.names)
+  ami                    = nonsensitive(data.aws_ssm_parameter.amzn2_linux.value)
+  id = data.aws_ssm_parameter.amzn2_linux
+
+  instance_type          = local.instance_type
+  subnet_id              = aws_subnet.public_subnet1[count.index].id
+  vpc_security_group_ids = [aws_security_group.nginx_sg.id]
+tags = {Name = "Armir ${count.index}"}
+  user_data = <<EOF
+#! /bin/bash
+sudo amazon-linux-extras install -y nginx1
+sudo service nginx start
+sudo rm /usr/share/nginx/html/index.html
+echo '<html><head><title>Taco Team Server ${count.index}</title></head><body style=\"background-color:#1F778D\"><p style=\"text-align: center;\"><span style=\"color:#FFFFFF;\"><span style=\"font-size:28px;\">Server ${count.index} - You did it! Have a &#127790;</span></span></p></body></html>' | sudo tee /usr/share/nginx/html/index.html
+EOF
+
+}
+# Load Balancer
+resource "aws_lb" "web" {
+  name               = "web-lb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.nginx_sg.id]
+  subnets            = aws_subnet.public_subnet1[*].id
+  enable_deletion_protection = false
+}
+
+resource "aws_lb_target_group" "web" {
+  name     = "web-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.app.id
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.web.arn
+  port              = "80"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "web" {
+  count = length(aws_instance.nginx1)
+  target_group_arn = aws_lb_target_group.web.arn
+  target_id = aws_instance.nginx1[count.index].id
+  port = 80
+}
+
+output "web" {
+  value = aws_lb.web.dns_name
+}
