@@ -18,6 +18,20 @@ data "aws_ssm_parameter" "amzn2_linux " {
   name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
 }
 
+data "aws_ami" "windows_latest" {
+  most_recent = true
+  owners      = ["amazon"] # Official AWS AMIs
+
+  filter {
+    name   = "name"
+    values = ["Windows_Server-2022-English-Full-Base-*"]
+  }
+
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
+}
 
 # RESOURCES#
 
@@ -82,7 +96,7 @@ resource "aws_security_group" "nginx_sg" {
 
 # INSTANCES #
 resource "aws_instance" "nginx1" {
-  count                  = length(data.aws_availability_zones.online.names)
+  count                  = 3
   ami                    = nonsensitive(data.aws_ssm_parameter.amzn2_linux.value)
   id = data.aws_ssm_parameter.amzn2_linux
 
@@ -99,6 +113,20 @@ echo '<html><head><title>Taco Team Server ${count.index}</title></head><body sty
 EOF
 
 }
+
+# INSTANCES #
+resource "aws_instance" "nginx1" {
+  count                  = 3
+  ami                    = data.aws_ami.windows-2022.id
+  id = data.aws_ssm_parameter.amzn2_linux
+
+  instance_type          = local.instance_type
+  subnet_id              = aws_subnet.public_subnet1[count.index].id
+  vpc_security_group_ids = [aws_security_group.nginx_sg.id]
+tags = {Name = "Armir ${count.index}"}
+ 
+}
+
 # Load Balancer
 resource "aws_lb" "web" {
   name               = "web-lb"
