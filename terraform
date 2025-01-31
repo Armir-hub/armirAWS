@@ -14,7 +14,7 @@ data "aws_availability_zones" "online" {
   state = "available"
 }
 
-data "aws_ssm_parameter" "amzn2_linux " {
+data "aws_ssm_parameter" "amzn2_linux" {
   name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
 }
 
@@ -115,9 +115,9 @@ EOF
 }
 
 # INSTANCES #
-resource "aws_instance" "nginx1" {
+resource "aws_instance" "windows1" {
   count                  = 3
-  ami                    = data.aws_ami.windows-2022.id
+  ami                    = data.aws_ami.windows_latest.id
   id = data.aws_ssm_parameter.amzn2_linux
 
   instance_type          = local.instance_type
@@ -164,3 +164,4 @@ resource "aws_lb_target_group_attachment" "web" {
 output "web" {
   value = aws_lb.web.dns_name
 }
+
