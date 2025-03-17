@@ -1,0 +1,68 @@
+data "aws_ami" "ubuntu2004" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+}
+
+# data "aws_ami" "windows" {
+#   most_recent = true
+#   owners      = ["amazon"]
+#   filter {
+#     name   = "name"
+#     values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+#   }
+# }
+
+resource "aws_instance" "linux" {
+  count                  = 2
+  ami                    = data.aws_ami.ubuntu2004.id
+  subnet_id              = aws_subnet.pub[count.index].id
+  iam_instance_profile   = aws_iam_instance_profile.ec2.name
+  tags                   = merge({ Name = "armir-ec2" }, var.common_tags)
+  instance_type          = "t2.micro"
+  depends_on             = [aws_s3_object.file, aws_db_instance.armir]
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  root_block_device {
+    delete_on_termination = true
+  }
+  user_data = templatefile("${path.module}/templates/userdata.tpl", {
+    aws_bucket = aws_s3_bucket.armir.id
+    }
+  )
+}
+
+# resource "aws_instance" "armir" {
+#   count = 2
+#   ami                    = data.aws_ami.windows.id
+#   subnet_id              = aws_subnet.pub[0].id
+#   iam_instance_profile   = aws_iam_instance_profile.ec2.name
+#   tags                   = merge({ Name = "armir-ec2" }, var.common_tags)
+#   instance_type          = "t3.medium"
+#   depends_on             = [aws_s3_object.file, aws_db_instance.armir]
+#   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+#   root_block_device {
+#     delete_on_termination = true
+#   }
+#   user_data = templatefile("${path.module}/templates/userdata.tpl", {
+#     db_host    = aws_db_instance.armir.address
+#     db_user    = var.db_user
+#     db_pass    = random_password.rds.result
+#     aws_bucket = aws_s3_bucket.armir.id
+#     }
+#   )
+# }
+
+resource "aws_lb_target_group_attachment" "armir" {
+  count            = 2
+  target_group_arn = aws_lb_target_group.armir.arn
+  target_id        = aws_instance.linux[count.index].id
+}
+
+# resource "aws_lb_target_group_attachment" "armir" {
+#  count            = 2
+#  target_group_arn = aws_lb_target_group.armir.arn
+#  target_id        = aws_instance.windows[count.index].id
+# }
